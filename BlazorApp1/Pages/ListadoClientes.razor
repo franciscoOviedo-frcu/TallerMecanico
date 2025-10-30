@@ -1,0 +1,141 @@
+﻿@using System.ComponentModel.DataAnnotations
+
+@page "/clientes"
+@inject HttpClient Http
+
+<PageTitle>Listado de Clientes</PageTitle>
+
+<h1>Listado de Clientes</h1>
+
+<h3>Agregar Nuevo Cliente</h3>
+<EditForm Model="@nuevoCliente" OnValidSubmit="HandleFormSubmit">
+    <DataAnnotationsValidator />
+
+    <div class="mb-3">
+        <label class="form-label">Nombre:</label>
+        <InputText class="form-control" @bind-Value="nuevoCliente.Nombre" />
+        <ValidationMessage For="@(() => nuevoCliente.Nombre)" />
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label">Apellido:</label>
+        <InputText class="form-control" @bind-Value="nuevoCliente.Apellido" />
+        <ValidationMessage For="@(() => nuevoCliente.Apellido)" />
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label">Email:</label>
+        <InputText class="form-control" @bind-Value="nuevoCliente.Email" />
+        <ValidationMessage For="@(() => nuevoCliente.Email)" />
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label">Teléfono:</label>
+        <InputText class="form-control" @bind-Value="nuevoCliente.Telefono" />
+        <ValidationMessage For="@(() => nuevoCliente.Telefono)" />
+    </div>
+
+    <button type="submit" class="btn btn-primary">Guardar Cliente</button>
+</EditForm>
+
+<hr />
+@if (clientes == null)
+{
+    <p>Cargando clientes...</p>
+}
+else
+{
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Nombre</th>
+                <th>Apellido</th>
+                <th>Email</th>
+                <th>Teléfono</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var cliente in clientes)
+            {
+                <tr>
+                    <td>@cliente.Nombre</td>
+                    <td>@cliente.Apellido</td>
+                    <td>@cliente.Email</td>
+                    <td>@cliente.Telefono</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+
+
+@code {
+    // Es una copia de tu modelo de la API.
+    private class ClienteDto
+    {
+        public int Id { get; set; }
+
+        [Required(ErrorMessage = "El nombre es obligatorio")] // <-- AGREGAR ESTO
+        public string Nombre { get; set; }
+
+        [Required(ErrorMessage = "El apellido es obligatorio")] // <-- AGREGAR ESTO
+        public string Apellido { get; set; }
+
+        public string Telefono { get; set; }
+
+        [EmailAddress(ErrorMessage = "El formato del email no es válido")] // <-- BONUS
+        public string Email { get; set; }
+    }
+
+    // --- Definimos variables ---
+    private ClienteDto[] clientes; // Array para la tabla
+    private ClienteDto nuevoCliente = new ClienteDto(); // Objeto para el formulario
+    private string apiUrl = "https://localhost:7053/api/Clientes"; // URL de la API
+
+
+    // --- Lógica principal ---
+
+    // 1. Este método se ejecuta automáticamente cuando la página carga
+    protected override async Task OnInitializedAsync()
+    {
+        await CargarClientesAsync();
+    }
+
+    // 2. Método para cargar la lista de clientes (GET)
+    private async Task CargarClientesAsync()
+    {
+        try
+        {
+            clientes = await Http.GetFromJsonAsync<ClienteDto[]>(apiUrl);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error al obtener clientes: {ex.Message}");
+        }
+    }
+
+    // 3. Método que se llama al enviar el formulario (POST)
+    private async Task HandleFormSubmit()
+    {
+        try
+        {
+            // Enviamos el nuevo cliente a la API
+            var response = await Http.PostAsJsonAsync(apiUrl, nuevoCliente);
+
+            if (response.IsSuccessStatusCode)
+            {
+                // Si salió bien:
+                // 1. Reseteamos el formulario
+                nuevoCliente = new ClienteDto();
+
+                // 2. Recargamos la lista de clientes (para ver el nuevo)
+                await CargarClientesAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error al crear cliente: {ex.Message}");
+        }
+    }
+}
