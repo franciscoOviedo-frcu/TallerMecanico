@@ -3,11 +3,15 @@
 @page "/clientes"
 @inject HttpClient Http
 
-<PageTitle>Listado de Clientes</PageTitle>
+<PageTitle>Clientes</PageTitle>
 
-<h1>Listado de Clientes</h1>
+<h1>Clientes</h1>
 
-<h3>Agregar Nuevo Cliente</h3>
+<NavLink href="registrar-cliente" class="btn btn-primary">
+    Registrar Cliente
+</NavLink>
+
+<!--<h3>Agregar Nuevo Cliente</h3>
 <EditForm Model="@nuevoCliente" OnValidSubmit="HandleFormSubmit">
     <DataAnnotationsValidator />
 
@@ -36,7 +40,12 @@
     </div>
 
     <button type="submit" class="btn btn-primary">Guardar Cliente</button>
-</EditForm>
+</EditForm>-->
+
+<br>
+<br>
+
+<h4>Listado de Clientes</h4>
 
 <hr />
 @if (clientes == null)

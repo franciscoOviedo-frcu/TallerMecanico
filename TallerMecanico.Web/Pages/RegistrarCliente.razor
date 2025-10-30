@@ -1,0 +1,99 @@
+﻿@page "/registrar-cliente" 
+@using System.ComponentModel.DataAnnotations
+@inject HttpClient Http
+@inject NavigationManager NavManager 
+
+<PageTitle>Registrar Cliente</PageTitle>
+
+<a href="/clientes" class="btn btn-secondary">Volver al Listado</a>
+
+<br>
+<br>
+
+<h3>Agregar Nuevo Cliente</h3>
+<EditForm Model="@nuevoCliente" OnValidSubmit="HandleFormSubmit">
+    <DataAnnotationsValidator />
+    
+
+    <div class="mb-3">
+        <label class="form-label">Nombre:</label>
+        <InputText class="form-control" @bind-Value="nuevoCliente.Nombre" />
+        <ValidationMessage For="@(() => nuevoCliente.Nombre)" />
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label">Apellido:</label>
+        <InputText class="form-control" @bind-Value="nuevoCliente.Apellido" />
+        <ValidationMessage For="@(() => nuevoCliente.Apellido)" />
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label">Email:</label>
+        <InputText class="form-control" @bind-Value="nuevoCliente.Email" />
+        <ValidationMessage For="@(() => nuevoCliente.Email)" />
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label">Teléfono:</label>
+        <InputText class="form-control" @bind-Value="nuevoCliente.Telefono" />
+        <ValidationMessage For="@(() => nuevoCliente.Telefono)" />
+    </div>
+
+
+
+    <button type="submit" class="btn btn-primary">Guardar Cliente</button>
+
+</EditForm>
+
+@code {
+    // Es una copia de tu modelo de la API.
+    private class ClienteDto
+    {
+        public int Id { get; set; }
+
+        [Required(ErrorMessage = "El nombre es obligatorio")]
+        public string Nombre { get; set; }
+
+        [Required(ErrorMessage = "El apellido es obligatorio")]
+        public string Apellido { get; set; }
+
+        public string Telefono { get; set; }
+
+        [EmailAddress(ErrorMessage = "El formato del email no es válido")]
+        public string Email { get; set; }
+    }
+
+    // --- ERRORES CORREGIDOS AQUÍ ABAJO ---
+
+    // AGREGADO 2: Faltaba crear la instancia del objeto para el formulario
+    private ClienteDto nuevoCliente = new ClienteDto();
+
+    // AGREGADO 3: Faltaba definir la URL de tu API
+    private string apiUrl = "https://localhost:7053/api/Clientes"; // <-- Reemplaza esto con la URL correcta de tu API
+
+    private async Task HandleFormSubmit()
+    {
+        try
+        {
+            // Enviamos el nuevo cliente a la API
+            var response = await Http.PostAsJsonAsync(apiUrl, nuevoCliente);
+
+            if (response.IsSuccessStatusCode)
+            {
+                // Si salió bien:
+                // 1. Reseteamos el formulario (opcional, porque vamos a navegar)
+                nuevoCliente = new ClienteDto();
+
+                // 2. AGREGADO 4: Redirigimos al listado de clientes
+                // No puedes llamar a CargarClientesAsync() porque ese método
+                // probablemente está en otra página (ListadoClientes.razor).
+                // Lo correcto es navegar de vuelta a esa página.
+                NavManager.NavigateTo("/listado-clientes"); // <-- Cambia esto por la ruta de tu listado
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error al crear cliente: {ex.Message}");
+        }
+    }
+}
