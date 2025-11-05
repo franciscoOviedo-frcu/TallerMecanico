@@ -14,6 +14,6 @@ namespace TallerMecanico.Api.Models
         public int ClienteId { get; set; }
 
         // Propiedad de navegación: Un vehículo pertenece a UN cliente
-        public virtual Cliente Cliente { get; set; }
+        public virtual Cliente? Cliente { get; set; }
     }
 }
