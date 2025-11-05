@@ -13,5 +13,6 @@ namespace TallerMecanico.Api.Data
         // Define tus "tablas" (DbSets)
         public DbSet<Cliente> Clientes { get; set; }
         public DbSet<Vehiculo> Vehiculos { get; set; }
+
     }
 }
