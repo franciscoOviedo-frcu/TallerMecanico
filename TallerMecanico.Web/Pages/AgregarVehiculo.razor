@@ -1,7 +1,10 @@
 ﻿@page "/vehiculos/nuevo"
+
+@inject IHttpClientFactory ClientFactory
 @inject HttpClient Http
 @inject NavigationManager NavigationManager
 @using System.ComponentModel.DataAnnotations
+@using TallerMecanico.Web.Models
 
 <PageTitle>Agregar Vehículo</PageTitle>
 
@@ -10,6 +13,7 @@
 <EditForm Model="@nuevoVehiculo" OnValidSubmit="HandleFormSubmit">
     <DataAnnotationsValidator />
 
+    <!-- 1. SELECCIÓN DE CLIENTE -->
     <div class="mb-3">
         <label class="form-label">Propietario (Cliente):</label>
         <InputSelect class="form-select" @bind-Value="nuevoVehiculo.ClienteId">
@@ -25,24 +29,72 @@
         <ValidationMessage For="@(() => nuevoVehiculo.ClienteId)" />
     </div>
 
+    <!-- 2. PATENTE -->
     <div class="mb-3">
         <label class="form-label">Patente:</label>
         <InputText class="form-control" @bind-Value="nuevoVehiculo.Patente" />
         <ValidationMessage For="@(() => nuevoVehiculo.Patente)" />
     </div>
 
+    <!-- 3. MARCA (Fipe) -->
     <div class="mb-3">
-        <label class="form-label">Marca:</label>
-        <InputText class="form-control" @bind-Value="nuevoVehiculo.Marca" />
+        <label class="form-label">Marca (Fipe):</label>
+        @if (marcasFipe == null)
+        {
+            <p><em>Cargando marcas...</em></p>
+        }
+        else
+        {
+            <select class="form-select" value="@codigoMarcaSeleccionada" @onchange="OnMarcaChange">
+                <option value="">-- Seleccione Marca --</option>
+                @foreach (var marca in marcasFipe)
+                {
+                    <option value="@marca.Codigo">@marca.Nombre</option>
+                }
+            </select>
+        }
         <ValidationMessage For="@(() => nuevoVehiculo.Marca)" />
     </div>
 
+    <!-- 4. MODELO (Fipe) -->
     <div class="mb-3">
-        <label class="form-label">Modelo:</label>
-        <InputText class="form-control" @bind-Value="nuevoVehiculo.Modelo" />
+        <label class="form-label">Modelo (Fipe):</label>
+
+        @if (!string.IsNullOrEmpty(mensajeError))
+        {
+            <div class="alert alert-danger">@mensajeError</div>
+        }
+
+        <select class="form-select" @onchange="OnModeloChange" disabled="@(modelosFipe == null && !cargandoModelos)">
+            <option value="">
+                @if (cargandoModelos)
+                {
+                    <text>⌛ Cargando modelos...</text>
+                }
+                else if (modelosFipe == null)
+                {
+
+                    <text>-- Primero seleccione una marca --</text>
+                }
+                else
+                {
+
+                    <text>-- Seleccione Modelo --</text>
+                }
+            </option>
+
+            @if (modelosFipe != null)
+            {
+                @foreach (var modelo in modelosFipe)
+                {
+                    <option value="@modelo.Codigo">@modelo.Nombre</option>
+                }
+            }
+        </select>
         <ValidationMessage For="@(() => nuevoVehiculo.Modelo)" />
     </div>
 
+    <!-- 5. AÑO -->
     <div class="mb-3">
         <label class="form-label">Año:</label>
         <InputNumber class="form-control" @bind-Value="nuevoVehiculo.Anio" />
@@ -55,19 +107,33 @@
 
 
 @code {
-    // --- DTOs (Copiamos las definiciones aquí) ---
-    // (En un proyecto más grande, esto estaría en un archivo .cs compartido)
+    // --- VARIABLES ---
+    private List<FipeItem>? marcasFipe;
+
+    // IMPORTANTE: Usamos la nueva clase FipeModelo (que tiene Codigo como número)
+    // Si te da error aquí, es porque no actualizaste FipeModels.cs
+    private List<FipeModelo>? modelosFipe;
+
+    private string codigoMarcaSeleccionada = "";
+    private bool cargandoModelos = false;
+    private string mensajeError = "";
+
+    // --- DTOs ---
     private class VehiculoDto
     {
         public int Id { get; set; }
         [Required(ErrorMessage = "La patente es obligatoria")]
         public string Patente { get; set; }
+
         [Required(ErrorMessage = "La marca es obligatoria")]
         public string Marca { get; set; }
+
         [Required(ErrorMessage = "El modelo es obligatorio")]
         public string Modelo { get; set; }
+
         [Range(1900, 2026, ErrorMessage = "El año debe ser válido")]
         public int Anio { get; set; } = DateTime.Now.Year;
+
         [Required(ErrorMessage = "Debe seleccionar un cliente")]
         [Range(1, int.MaxValue, ErrorMessage = "Debe seleccionar un cliente válido")]
         public int ClienteId { get; set; }
@@ -80,45 +146,99 @@
         public string Apellido { get; set; }
     }
 
-    // --- Variables ---
-    private ClienteDto[] clientes; // Para el dropdown
-    private VehiculoDto nuevoVehiculo = new VehiculoDto(); // Para el formulario
+    private ClienteDto[] clientes;
+    private VehiculoDto nuevoVehiculo = new VehiculoDto();
 
-    // (Asegúrate de que el puerto 7053 sea el de tu API)
+    // URLs (Ajusta el puerto si es diferente al 7053)
     private string apiUrlVehiculos = "https://localhost:7053/api/Vehiculos";
     private string apiUrlClientes = "https://localhost:7053/api/Clientes";
 
-    // --- Métodos ---
-
-    // 1. Al cargar la página, solo necesitamos la lista de Clientes
     protected override async Task OnInitializedAsync()
     {
         try
         {
-            clientes = await Http.GetFromJsonAsync<ClienteDto[]>(apiUrlClientes);
+            var tareaClientes = Http.GetFromJsonAsync<ClienteDto[]>(apiUrlClientes);
+
+            var fipeClient = ClientFactory.CreateClient("FipeApi");
+            var tareaMarcas = fipeClient.GetFromJsonAsync<List<FipeItem>>("carros/marcas");
+
+            await Task.WhenAll(tareaClientes, tareaMarcas);
+            clientes = await tareaClientes;
+            marcasFipe = await tareaMarcas;
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error al obtener clientes: {ex.Message}");
+            Console.WriteLine($"Error inicializando: {ex.Message}");
         }
     }
 
-    // 2. Método para guardar el formulario (POST)
+    private async Task OnMarcaChange(ChangeEventArgs e)
+    {
+        codigoMarcaSeleccionada = e.Value?.ToString();
+        modelosFipe = null;
+        nuevoVehiculo.Modelo = "";
+        mensajeError = "";
+        cargandoModelos = false;
+
+        if (string.IsNullOrEmpty(codigoMarcaSeleccionada)) return;
+
+        try
+        {
+            var marcaEncontrada = marcasFipe.FirstOrDefault(m => m.Codigo == codigoMarcaSeleccionada);
+            if (marcaEncontrada != null) nuevoVehiculo.Marca = marcaEncontrada.Nombre;
+
+            cargandoModelos = true;
+            var fipeClient = ClientFactory.CreateClient("FipeApi");
+
+            // Aquí usamos FipeModeloResponse que espera un número en el código de modelo
+            var response = await fipeClient.GetFromJsonAsync<FipeModeloResponse>($"carros/marcas/{codigoMarcaSeleccionada}/modelos");
+
+            if (response != null)
+            {
+                modelosFipe = response.Modelos;
+            }
+        }
+        catch (Exception ex)
+        {
+            mensajeError = $"Error Fipe: {ex.Message}";
+            Console.WriteLine(mensajeError);
+        }
+        finally
+        {
+            cargandoModelos = false;
+        }
+    }
+
+    private void OnModeloChange(ChangeEventArgs e)
+    {
+        var codigoModeloStr = e.Value?.ToString();
+
+        if (!string.IsNullOrEmpty(codigoModeloStr) && modelosFipe != null)
+        {
+            // TRUCO: Convertimos el número (Codigo) a string para poder compararlo
+            // con el valor que viene del selector HTML (que siempre es texto).
+            var modeloEncontrado = modelosFipe.FirstOrDefault(m => m.Codigo.ToString() == codigoModeloStr);
+
+            if (modeloEncontrado != null)
+            {
+                nuevoVehiculo.Modelo = modeloEncontrado.Nombre;
+            }
+        }
+    }
+
     private async Task HandleFormSubmit()
     {
         try
         {
             var response = await Http.PostAsJsonAsync(apiUrlVehiculos, nuevoVehiculo);
-
             if (response.IsSuccessStatusCode)
             {
-                // ¡Éxito! Navegamos de vuelta a la lista
                 NavigationManager.NavigateTo("/vehiculos");
             }
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error al crear vehículo: {ex.Message}");
+            Console.WriteLine($"Error: {ex.Message}");
         }
     }
 }
