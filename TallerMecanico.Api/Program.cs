@@ -23,7 +23,7 @@ namespace TallerMecanico.Api
                                       // Aquí pones la URL de tu cliente Blazor. 
                                       // Búscala en las propiedades del proyecto Web (launchSettings.json)
                                       // Probablemente sea algo como "https://localhost:7123"
-                                      policy.WithOrigins("https://localhost:7099")
+                                      policy.WithOrigins("https://localhost:5000")
                                             .AllowAnyHeader()
                                             .AllowAnyMethod();
                                   });
