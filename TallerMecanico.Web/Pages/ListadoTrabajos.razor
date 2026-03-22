@@ -28,7 +28,7 @@ else
             @foreach (var trabajo in trabajos)
             {
                 <tr>
-                    <td>@trabajo.descripcion</td>
+                    <td>@trabajo.descripcionArreglo</td>
                     <td>@trabajo.fechaAsignacion.ToShortDateString()</td>
                     <td>@trabajo.estado</td>
                 </tr>
@@ -41,7 +41,7 @@ else
 
     private class trabajoDto
     {
-        public string descripcion { get; set; }
+        public string descripcionArreglo { get; set; }
         public DateTime fechaAsignacion { get; set; }
         public string estado { get; set; }
 
