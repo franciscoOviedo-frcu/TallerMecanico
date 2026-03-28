@@ -22,8 +22,7 @@ namespace TallerMecanico.Api
                                   {
                                       // Aquí pones la URL de tu cliente Blazor. 
                                       // Búscala en las propiedades del proyecto Web (launchSettings.json)
-                                      // Probablemente sea algo como "https://localhost:7123"
-                                      policy.WithOrigins("https://localhost:5000")
+                                      policy.WithOrigins("http://localhost:5000", "https://localhost:5000") // Para que permita http y https
                                             .AllowAnyHeader()
                                             .AllowAnyMethod();
                                   });
@@ -31,7 +30,11 @@ namespace TallerMecanico.Api
 
             // Add services to the container.
 
-            builder.Services.AddControllers();
+            builder.Services.AddControllers()
+                .AddJsonOptions(options =>
+                {
+                    options.JsonSerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter());
+                });
             // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
@@ -54,7 +57,7 @@ namespace TallerMecanico.Api
 
             app.MapControllers();
 
-            app.Run();
+            app.Run("https://localhost:7053");
         }
     }
 }

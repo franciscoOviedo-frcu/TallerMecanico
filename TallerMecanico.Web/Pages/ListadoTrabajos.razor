@@ -1,12 +1,77 @@
 ﻿@using System.ComponentModel.DataAnnotations
+@inject HttpClient Http
 
 @page "/Trabajos"
-<h3>ListadoTrabajos</h3>
+
 
 <NavLink href="registrar-trabajo" class="btn btn-primary">
     Registrar Trabajo
 </NavLink>
 
+<h3>ListadoTrabajos</h3>
+
+@if (trabajos == null)
+{
+    <p>Cargando trabajos...</p>
+}
+else
+{
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Descripción</th>
+                <th>Fecha Asignacion</th>
+                <th>Estado</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var trabajo in trabajos)
+            {
+                <tr>
+                    <td>@trabajo.descripcionArreglo</td>
+                    <td>@trabajo.fechaAsignacion.ToShortDateString()</td>
+                    <td>@trabajo.estado</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
 @code {
 
+    private class trabajoDto
+    {
+        public string descripcionArreglo { get; set; }
+        public DateTime fechaAsignacion { get; set; }
+        public string estado { get; set; }
+
+    }
+    private enum estadoTrabajo
+    {
+        Pendiente,
+        EnCurso,
+        FinalizadoConPagoPendiente,
+        FinalizadoPagado,
+        Cancelado
+    }
+
+    trabajoDto[] trabajos;
+    private string apiUrl = "https://localhost:7053/api/Trabajos";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CargarTrabajosAsync();
+    }
+
+    private async Task CargarTrabajosAsync()
+    {
+        try
+        {
+            trabajos = await Http.GetFromJsonAsync<trabajoDto[]>(apiUrl);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error al cargar trabajos: {ex.Message}");
+        }
+    }
 }

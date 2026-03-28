@@ -11,8 +11,107 @@
 <br>
 
 
-<h3>RegistrarTrabajo</h3>
+<h3>RegistrarTrabajo</h3
+
+<EditForm Model="@nuevoTrabajo" OnValidSubmit="HandleFormSubmit">
+    <DataAnnotationsValidator/>
+    <div class="mb-3">
+    <label class="form-label">Seleccion un vehiculo</label>
+    <InputSelect class="form-select" @bind-Value= "nuevoTrabajo.vehiculoId"> 
+        <option value="0">--- Seleccione un Vehiculo--- </option>
+
+            @if (vehiculos != null)
+            {
+                @foreach (var vehiculo in vehiculos)
+                {
+                    <option value="@vehiculo.Id">@vehiculo.Patente - @vehiculo.Marca @vehiculo.Modelo</option>
+                }
+            }
+
+    </InputSelect>
+    <ValidationMessage For="@(() => nuevoTrabajo.vehiculoId)"/>
+    </div>
+
+
+        <div class="mb-3">
+        <label class="form-label"> Descripcion:</label>
+        <InputText class="form-control" @bind-Value="nuevoTrabajo.descripcionArreglo"/>
+        <ValidationMessage For="@(() => nuevoTrabajo.descripcionArreglo)"/>
+            </div>
+
+        <button type="submit" class="btn btn-primary">Registrar Trabajo</button>
+</EditForm>
 
 @code {
+    private class TrabajoDto
+    {
+        public int id { get; set; }
+        public DateTime fechaAsignacion { get; set; }
+        public DateTime fechaFinalizacion { get; set; }
 
+        public DateTime fechaPago { get; set; }
+        public float monto { get; set; }
+        public string descripcionArreglo { get; set; }
+        public EstadoTrabajo estado { get; set; } = new EstadoTrabajo();
+
+        //[Required]
+        public int vehiculoId { get; set; }
+    }
+
+    private enum EstadoTrabajo
+    {
+        Pendiente,
+        EnCurso,
+        FinalizadoConPagoPendiente,
+        FinalizadoPagado,
+        Cancelado
+
+    }
+
+    private class vehiculoDto
+    {
+        public int Id { get; set; }
+        public string Patente { get; set; }
+        public string Marca { get; set; }
+        public string Modelo { get; set; }
+    }
+
+    private TrabajoDto nuevoTrabajo = new TrabajoDto();
+    private vehiculoDto[] vehiculos;
+    private string apiUrl = "https://localhost:7053/api/Trabajos";
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            vehiculos = await Http.GetFromJsonAsync<vehiculoDto[]>("https://localhost:7053/api/Vehiculos");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("Error al cargar vehículos: " + ex.Message);
+        }
+    }
+
+    private async Task HandleFormSubmit()
+    {
+        try
+        {
+            nuevoTrabajo.fechaAsignacion = DateTime.Now; // Asignamos la fecha actual al crear el trabajo
+
+            var response = await Http.PostAsJsonAsync(apiUrl, nuevoTrabajo);
+
+            if (response.IsSuccessStatusCode)
+            {
+                NavManager.NavigateTo("/Trabajos");
+            }
+            else
+            {
+                Console.WriteLine($"Error al registrar trabajo: {response.ReasonPhrase}");
+            }
+    }
+        catch (Exception ex)
+        {
+            Console.WriteLine("error al registrar trabajo: " + ex.Message);
+        }
+    }
 }
